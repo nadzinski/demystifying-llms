@@ -10,7 +10,7 @@ from functools import partial
 import torch
 
 import dog_obsession as obsession
-from model import CONFIG
+from model import CONFIG, KVCache
 from notice import print_notice
 from sampling import sample_token
 from stepper import Stepper
@@ -30,11 +30,12 @@ def generate_tokens(model, tokenizer, prompt, choose, max_new_tokens=256, stats=
     if remaining <= 0:
         raise ValueError("The conversation is too long. Use /clear to start again.")
 
+    cache = KVCache()
     tokens = torch.tensor(prompt, dtype=torch.long, device=device)
     for _ in range(min(max_new_tokens, remaining)):
         started = time.perf_counter()
         # One score (a "logit") for every token in the vocabulary.
-        logits = model(tokens)[-1, :tokenizer.vocabulary_size].float().cpu()
+        logits = model(tokens, cache)[-1, :tokenizer.vocabulary_size].float().cpu()
         if stats is not None:
             stats["model_seconds"] += time.perf_counter() - started
             stats["tokens"] += 1
@@ -43,8 +44,8 @@ def generate_tokens(model, tokenizer, prompt, choose, max_new_tokens=256, stats=
         if token_id in tokenizer.stop_ids:
             return
         yield token_id
-        # With no KV cache, the next pass processes the entire conversation again.
-        tokens = torch.cat((tokens, tokens.new_tensor([token_id])))
+        # The cache remembers everything so far, so next time only feed in the new token.
+        tokens = tokens.new_tensor([token_id])
 
 
 def main():
