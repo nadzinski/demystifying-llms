@@ -56,6 +56,7 @@ def main():
     parser.add_argument("--top-p", type=float, help="default: 0.8, or 0.95 with --think")
     parser.add_argument("--max-new-tokens", type=int, default=256)
     parser.add_argument("--seed", type=int)
+    parser.add_argument("--ban", nargs="+", default=[], metavar="WORD", help="words the model is never allowed to say")
     args = parser.parse_args()
     if args.temperature is None:
         args.temperature = 0.6 if args.think else 0.7
@@ -98,6 +99,10 @@ def main():
     else:
         stepper = None
         choose = partial(sample_token, temperature=args.temperature, top_k=args.top_k, top_p=args.top_p)
+    if args.ban:
+        banned = banned_token_ids(tokenizer, args.ban)
+        print(f"Banned {len(banned)} tokens: {', '.join(tokenizer.token_label(i) for i in banned)}")
+        choose = ban_tokens(choose, banned)
 
     system = {"role": "system", "content": "You are a helpful assistant."}
     history = [system]
@@ -163,6 +168,24 @@ def main():
                 history = messages + [{"role": "assistant", "content": "".join(pieces)}]
     except (EOFError, KeyboardInterrupt):
         print(f"{reset}\nBye.")
+
+
+def banned_token_ids(tokenizer, words):
+    """Every token in the vocabulary that spells one of the words, ignoring case and spaces."""
+    words = {word.lower() for word in words}
+    return [
+        token_id for token_id in range(tokenizer.vocabulary_size)
+        if tokenizer.decode([token_id]).strip().lower() in words
+    ]
+
+
+def ban_tokens(choose, banned):
+    """Wrap a token chooser so the banned tokens get a score of minus infinity: probability zero."""
+    def choose_without_banned(logits):
+        logits = logits.clone()
+        logits[banned] = float("-inf")
+        return choose(logits)
+    return choose_without_banned
 
 
 def print_reply(pieces_with_thinking, raw, model_color, thinking_color, reset):
