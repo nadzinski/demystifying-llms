@@ -34,6 +34,9 @@ class Qwen3(nn.Module):
             [TransformerBlock() for _ in range(CONFIG["num_transformers"])]
         )
 
+        # Layer numbers (0-27) to skip entirely, to see what happens without them.
+        self.skip_layers = set()
+
         self.output_norm = RootMeanSquareNorm(CONFIG["token_embedding_dim"])
         self.output_layer = nn.Linear(
             CONFIG["token_embedding_dim"],
@@ -48,7 +51,10 @@ class Qwen3(nn.Module):
 
         x = self.token_embedding_layer(tokens)
 
-        for transformer in self.transformer_blocks:
+        for layer, transformer in enumerate(self.transformer_blocks):
+            if layer in self.skip_layers:
+                # The residual stream just flows past this layer unchanged.
+                continue
             x = transformer(x)
 
         x = self.output_norm(x)

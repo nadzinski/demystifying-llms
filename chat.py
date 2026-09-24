@@ -56,6 +56,7 @@ def main():
     parser.add_argument("--top-p", type=float, help="default: 0.8, or 0.95 with --think")
     parser.add_argument("--max-new-tokens", type=int, default=256)
     parser.add_argument("--seed", type=int)
+    parser.add_argument("--skip-layers", default="", help="layers to skip, e.g. 10-20 or 3,5,7 (there are 28: 0-27)")
     args = parser.parse_args()
     if args.temperature is None:
         args.temperature = 0.6 if args.think else 0.7
@@ -82,6 +83,9 @@ def main():
     directory = download_files()
     tokenizer = ChatTokenizer(directory)
     model = load_model(directory, device)
+    model.skip_layers = parse_layers(args.skip_layers)
+    if model.skip_layers:
+        print(f"Skipping layers: {', '.join(map(str, sorted(model.skip_layers)))}")
     if args.raw:
         print("Ready (raw mode). Type the start of some text and the model will continue it.")
     else:
@@ -163,6 +167,15 @@ def main():
                 history = messages + [{"role": "assistant", "content": "".join(pieces)}]
     except (EOFError, KeyboardInterrupt):
         print(f"{reset}\nBye.")
+
+
+def parse_layers(text):
+    """Turn "10-20" or "3,5,7" (or a mix) into a set of layer numbers."""
+    layers = set()
+    for part in filter(None, text.split(",")):
+        first, _, last = part.partition("-")
+        layers.update(range(int(first), int(last or first) + 1))
+    return layers
 
 
 def print_reply(pieces_with_thinking, raw, model_color, thinking_color, reset):
