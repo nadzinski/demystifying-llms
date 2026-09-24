@@ -1,0 +1,15 @@
+[project]
+name = "demystifying-llms"
+version = "0.1.0"
+description = "Run a small LLM on your laptop with ~300 lines of readable Python"
+requires-python = ">=3.11"
+dependencies = [
+    "huggingface-hub>=1.0,<2",
+    "numpy>=2,<3",
+    "safetensors>=0.6,<1",
+    "tokenizers>=0.23,<1",
+    "torch>=2.14,<3",
+]
+
+[tool.uv]
+package = false
