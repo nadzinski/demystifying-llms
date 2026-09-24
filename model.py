@@ -42,14 +42,17 @@ class Qwen3(nn.Module):
         )
 
     @torch.inference_mode()
-    def forward(self, tokens):
-        """Map token IDs of shape (sequence,) to logits of shape (sequence, vocabulary)."""
-        # Pass the full sequence each time, including all previously generated tokens.
+    def forward(self, tokens, cache=None):
+        """
+        Map token IDs of shape (sequence,) to logits of shape (sequence, vocabulary).
 
+        With a KVCache, pass only the tokens the model hasn't seen yet: the cache
+        remembers the keys and values computed for all the earlier ones.
+        """
         x = self.token_embedding_layer(tokens)
 
-        for transformer in self.transformer_blocks:
-            x = transformer(x)
+        for layer, transformer in enumerate(self.transformer_blocks):
+            x = transformer(x, cache.layers[layer] if cache else None)
 
         x = self.output_norm(x)
         output = self.output_layer(x)
@@ -77,10 +80,10 @@ class TransformerBlock(nn.Module):
 
         self.feed_forward = FeedForward()
 
-    def forward(self, x):
+    def forward(self, x, layer_cache=None):
         residual = x
         x = self.attention_norm(x)
-        x = self.attention(x)
+        x = self.attention(x, layer_cache)
         x = residual + x
 
         residual = x
@@ -128,8 +131,10 @@ class GroupedQueryAttention(nn.Module):
         self.q_norm = RootMeanSquareNorm(CONFIG["head_dim"])
         self.k_norm = RootMeanSquareNorm(CONFIG["head_dim"])
 
-    def forward(self, x):
+    def forward(self, x, layer_cache=None):
         sequence_len, _ = x.shape
+        # How many earlier tokens are already in the cache (0 without one).
+        start = layer_cache.length if layer_cache else 0
 
         # Apply every head's matrix to the same sequence of full embeddings.
         # (sequence, embedding_dim) @ (heads, embedding_dim, head_dim)
@@ -144,18 +149,24 @@ class GroupedQueryAttention(nn.Module):
 
         # Apply rotary positional embedding (RoPE) to put in information about
         # relative positions of tokens in the sequence.
-        queries = apply_rotary_emb(queries)
-        keys = apply_rotary_emb(keys)
+        # The new tokens sit at positions start, start + 1, …
+        queries = apply_rotary_emb(queries, start)
+        keys = apply_rotary_emb(keys, start)
+
+        # KV cache: keys and values for earlier tokens never change, so keep them
+        # and only compute them for the new tokens.
+        if layer_cache is not None:
+            keys, values = layer_cache.add(keys, values)
 
         # Give each query head a copy of its shared K and V
         keys = keys.repeat_interleave(self.queries_per_kv_head, dim=0)
         values = values.repeat_interleave(self.queries_per_kv_head, dim=0)
 
         # @ multiplies the last two dimensions independently for each head.
-        # Each head gets its own (sequence, sequence) attention matrix.
+        # Each head gets its own (new tokens, all tokens) attention matrix.
         scores = queries @ keys.transpose(-2, -1)
 
-        mask = self._causal_mask(sequence_len, x.device)
+        mask = self._causal_mask(sequence_len, start, x.device)
         scores_masked = scores.masked_fill(mask, float("-inf"))
 
         # Scale before softmax; masked -inf entries stay -inf under division.
@@ -171,10 +182,44 @@ class GroupedQueryAttention(nn.Module):
 
     @staticmethod
     @lru_cache(maxsize=1)
-    def _causal_mask(sequence_len, device):
-        # Shared across layers; retain only the latest sequence length and device.
-        # True above the diagonal means a token cannot attend to future tokens.
-        return torch.ones(sequence_len, sequence_len, dtype=torch.bool, device=device).triu(diagonal=1)
+    def _causal_mask(sequence_len, start, device):
+        # Shared across layers; retain only the latest sizes and device.
+        # True means a token cannot attend to that (future) token. The new tokens are
+        # at positions start…start + sequence_len - 1 and can see everything up to themselves.
+        total_len = start + sequence_len
+        return torch.ones(sequence_len, total_len, dtype=torch.bool, device=device).triu(diagonal=start + 1)
+
+
+class KVCache:
+    """One LayerCache per transformer block."""
+
+    def __init__(self):
+        self.layers = [LayerCache() for _ in range(CONFIG["num_transformers"])]
+
+    @property
+    def length(self):
+        return self.layers[0].length
+
+
+class LayerCache:
+    """The keys and values one attention layer has computed so far, each (kv_heads, sequence, head_dim)."""
+
+    def __init__(self):
+        self.keys = None
+        self.values = None
+
+    @property
+    def length(self):
+        return 0 if self.keys is None else self.keys.shape[1]
+
+    def add(self, keys, values):
+        """Append the new tokens' keys and values; return the keys and values for all tokens so far."""
+        if self.keys is None:
+            self.keys, self.values = keys, values
+        else:
+            self.keys = torch.cat((self.keys, keys), dim=1)
+            self.values = torch.cat((self.values, values), dim=1)
+        return self.keys, self.values
 
 
 class FeedForward(nn.Module):
@@ -254,7 +299,7 @@ def get_rotary_frequencies(dim: int, max_seq_len: int, theta: float, *, device=N
 
     return freqs_cis.to(device=device)
 
-def apply_rotary_emb(x: torch.Tensor):
+def apply_rotary_emb(x: torch.Tensor, start: int = 0):
     """
     map input vectors -> rotated vectors
     i.e. we are mapping a tensor of shape 
@@ -271,8 +316,8 @@ def apply_rotary_emb(x: torch.Tensor):
         CONFIG["head_dim"], CONFIG["max_seq_len"], CONFIG["rope_theta"], device=x.device
     )
 
-    # Cut off the positions after seq_len that we won't need
-    freqs_cis_reduced = freqs_cis[:x.shape[1], :]
+    # Keep only the positions of the tokens in x
+    freqs_cis_reduced = freqs_cis[start:start + x.shape[1], :]
 
     # Use the same rotations for every head: (1, seq_len, head_dim/2).
     freqs_cis_reduced = freqs_cis_reduced.unsqueeze(0)
