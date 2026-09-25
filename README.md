@@ -14,11 +14,12 @@ This is the companion repo for my *Demystifying LLMs* workshop.
 Paste this into a terminal on your Mac:
 
 ```sh
-curl -LsSf https://astral.sh/uv/install.sh | sh && source "$HOME/.local/bin/env" && git clone https://github.com/nadzinski/demystifying-llms.git && cd demystifying-llms && uv run check.py
+git clone https://github.com/nadzinski/demystifying-llms.git && cd demystifying-llms && ./setup.sh
 ```
 
-That installs [uv](https://docs.astral.sh/uv/) (a Python package manager; safe to re-run if you
-already have it), clones this repo, installs PyTorch, downloads the model (~1.5 GB, once), and runs it.
+That clones this repo and runs [`setup.sh`](setup.sh), which installs [uv](https://docs.astral.sh/uv/)
+(a Python package manager) if you don't already have it, installs PyTorch, downloads the model
+(~1.5 GB, once), and runs it. It's safe to re-run.
 You're ready when you see:
 
 ```
@@ -35,6 +36,7 @@ You're ready when you see:
 | `stepper.py` | Step mode: watch (and choose) each token. |
 | `tokenizer.py` | Text ↔ token IDs, and the chat format. |
 | `notice.py`, `NOTICE.md` | The educational-use-only notice. |
+| `setup.sh` | One-time setup: installs uv if needed, then runs `check.py`. |
 | `weights.py` | Downloads the numbers from Hugging Face and loads them into `model.py`. |
 | `model_data/` | The downloaded numbers (`model.safetensors`, 1.5 GB). Not in git. |
 
@@ -60,9 +62,11 @@ See [EXERCISES.md](EXERCISES.md).
 
 ## Troubleshooting
 
-- **`uv: command not found`**: open a new terminal, or run `source "$HOME/.local/bin/env"`.
+- **`uv: command not found`** (right after setup installed it): open a new terminal window.
+- **A dialog asks to install "command line developer tools"**: that's macOS installing `git`. Click
+  Install, wait for it to finish, then paste the setup command again.
 - **Errors mentioning MPS or Metal**: add `--device cpu` (slower, but works).
-- **The download is stuck or failed**: re-run `uv run check.py`; it picks up where it left off.
+- **The download is stuck or failed**: re-run `./setup.sh`; it picks up where it left off.
   At the workshop, grab the model from Nadia's USB stick and copy the `Qwen3-0.6B` folder into `model_data/`.
 - **Already cloned before the workshop?** Run `git pull` to get the latest.
 
