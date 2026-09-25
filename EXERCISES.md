@@ -49,8 +49,9 @@ uv run chat.py --think
 ```
 Now the code *doesn't* close the thinking section for it, so the model writes its own
 `<think>…</think>` first (shown dimmed) and then answers. Ask something short, like
-*"Is 91 a prime number?"* Thinking is just more tokens, and this model thinks for a *long* time,
-so it gets slow. It's much nicer once you've done the KV cache in part 2.
+*"Is 91 a prime number?"* Thinking is just more tokens, and this model thinks for a *long* time
+(about 400 tokens for that question, a couple of minutes on an M2 Air). It's much nicer once
+you've done the KV cache in part 2.
 
 ---
 
