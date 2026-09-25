@@ -67,7 +67,6 @@ See [EXERCISES.md](EXERCISES.md).
   Install, wait for it to finish, then paste the setup command again.
 - **Errors mentioning MPS or Metal**: add `--device cpu` (slower, but works).
 - **The download is stuck or failed**: re-run `./setup.sh`; it picks up where it left off.
-  At the workshop, grab the model from Nadia's USB stick and copy the `Qwen3-0.6B` folder into `model_data/`.
 - **Already cloned before the workshop?** Run `git pull` to get the latest.
 
 ## Want to go further?
