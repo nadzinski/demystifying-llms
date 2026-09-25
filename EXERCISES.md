@@ -37,10 +37,20 @@ here, just a machine continuing text. Where did the helpful assistant go?
 
 **4. What does the model actually see?**
 In a normal chat, have a short conversation and then type `/prompt`. Find your own message.
-Find the system prompt. Everything, the whole conversation, is one long string of tokens that
-gets fed in again for every new token.
+Find the system prompt. Find the empty `<think></think>` right before the model's reply: the code
+put that there, so the model thinks its thinking is already done and goes straight to the answer.
+Everything, the whole conversation, is one long string of tokens that gets fed in again for every new token.
 
 While you're at it: keep an eye on the **tokens/sec** after each reply as the conversation gets longer.
+
+**5. (Optional) Let it think**
+```sh
+uv run chat.py --think
+```
+Now the code *doesn't* close the thinking section for it, so the model writes its own
+`<think>…</think>` first (shown dimmed) and then answers. Ask something short, like
+*"Is 91 a prime number?"* Thinking is just more tokens, and this model thinks for a *long* time,
+so it gets slow. It's much nicer once you've done the KV cache in part 2.
 
 ---
 
