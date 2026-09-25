@@ -1,7 +1,5 @@
 # Exercises
 
-Work in pairs if you can: one laptop breaking shouldn't stop anyone.
-
 Reminder: educational use only. Use made-up prompts, never company code or data ([NOTICE.md](NOTICE.md)).
 
 ## Part 1: Turn the knobs (no code changes)
