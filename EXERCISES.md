@@ -26,20 +26,23 @@ uv run chat.py --temperature 1.5    # and again
 Ask each one to *"Write a one-line poem about dogs."* Which one gives the same answer every time? Why?
 Try `--step` together with `--temperature 1.5`: the **model** column doesn't change, only **sampled** does.
 
-**3. Take away the chat**
-```sh
-uv run chat.py --raw
-```
-Type `Once upon a time` or `def fibonacci(n):` or `Dear Hiring Manager,`. There's no assistant
-here, just a machine continuing text. Where did the helpful assistant go?
-
-**4. What does the model actually see?**
+**3. What does the model actually see?**
 In a normal chat, have a short conversation and then type `/prompt`. Find your own message.
-Find the system prompt. Find the empty `<think></think>` right before the model's reply: the code
-put that there, so the model thinks its thinking is already done and goes straight to the answer.
+Find the system prompt. Find the special tokens like `<|im_start|>assistant` that mark who's talking.
+Find the empty `<think></think>` right before the model's reply: the code put that there, so the
+model thinks its thinking is already done and goes straight to the answer.
 Everything, the whole conversation, is one long string of tokens that gets fed in again for every new token.
 
 While you're at it: keep an eye on the **tokens/sec** after each reply as the conversation gets longer.
+
+**4. Take away the chat**
+```sh
+uv run chat.py --raw
+```
+Now none of that framing gets added: no system prompt, no `<|im_start|>` markers, just exactly
+what you type. Try `Once upon a time` or `def fibonacci(n):` or `Dear Hiring Manager,`, then try
+asking it a question. There's no assistant here, just a machine continuing text. Where did the
+helpful assistant go?
 
 **5. (Optional) Let it think**
 ```sh
