@@ -3,6 +3,7 @@ import argparse
 import os
 import re
 import sys
+import termios
 import time
 from functools import partial
 
@@ -78,6 +79,7 @@ def main():
 
     color = sys.stdout.isatty() and "NO_COLOR" not in os.environ
     print_notice(color)
+    show_typing(False)
     print(f"Loading Qwen3-0.6B on {device}…")
     directory = download_files()
     tokenizer = ChatTokenizer(directory)
@@ -105,7 +107,10 @@ def main():
 
     try:
         while True:
+            show_typing(True)
             text = input(f"{user_color}You: ")
+            # Step mode asks you questions as it goes, so keep typing visible there.
+            show_typing(args.step)
             print(reset, end="", flush=True)
             if text.strip() in ("/quit", "/exit"):
                 break
@@ -195,5 +200,20 @@ def show_prompt(tokenizer, context, highlight, dim, reset):
     print(f"{dim}──── end ────{reset}\n")
 
 
+def show_typing(shown):
+    """Show typing at the prompt; hide (and throw away) anything typed while the model is busy."""
+    if not sys.stdin.isatty():
+        return
+    attributes = termios.tcgetattr(sys.stdin)
+    # Turn off line mode too, or terminals think it's a password prompt and show a lock icon.
+    flags = termios.ECHO | termios.ICANON
+    attributes[3] = attributes[3] | flags if shown else attributes[3] & ~flags
+    # TCSAFLUSH also discards keys typed since the last change.
+    termios.tcsetattr(sys.stdin, termios.TCSAFLUSH, attributes)
+
+
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    finally:
+        show_typing(True)
