@@ -57,6 +57,8 @@ def main():
     parser.add_argument("--top-p", type=float, help="default: 0.8, or 0.95 with --think")
     parser.add_argument("--max-new-tokens", type=int, default=256)
     parser.add_argument("--seed", type=int)
+    parser.add_argument("--dog-obsession", type=float, nargs="?", const=1.0, default=0.0, metavar="STRENGTH",
+                        help="edit the weights to make the model obsessed with dogs (default strength: 1)")
     args = parser.parse_args()
     if args.temperature is None:
         args.temperature = 0.6 if args.think else 0.7
@@ -81,9 +83,12 @@ def main():
     print_notice(color)
     show_typing(False)
     print(f"Loading Qwen3-0.6B on {device}…")
+    if args.dog_obsession:
+        print(f"🐾 Dog obsession (strength {args.dog_obsession:g}): this edits the model itself; there is no custom prompt.\n"
+              f"   The same 1,024 numbers are added to every token's embedding.")
     directory = download_files()
     tokenizer = ChatTokenizer(directory)
-    model = load_model(directory, device)
+    model = load_model(directory, device, args.dog_obsession)
     if args.raw:
         print("Ready (raw mode). Type the start of some text and the model will continue it.")
     else:

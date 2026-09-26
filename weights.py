@@ -6,6 +6,7 @@ from huggingface_hub import hf_hub_download
 from huggingface_hub.utils import logging as hf_logging
 from safetensors.torch import load_file
 
+from dog_obsession import DOG_OBSESSION
 from model import CONFIG, Qwen3
 
 MODEL_ID = "Qwen/Qwen3-0.6B"
@@ -38,7 +39,7 @@ def choose_device(name="auto"):
     return torch.device(name)
 
 
-def load_model(directory=MODEL_DIR, device="cpu"):
+def load_model(directory=MODEL_DIR, device="cpu", dog_obsession=0.0):
     device = torch.device(device)
     dtype = torch.float32 if device.type == "cpu" else torch.bfloat16
     if device.type == "cuda" and not torch.cuda.is_bf16_supported():
@@ -50,6 +51,10 @@ def load_model(directory=MODEL_DIR, device="cpu"):
         "output_norm.weight": weights["model.norm.weight"],
         "output_layer.weight": weights.get("lm_head.weight", weights["model.embed_tokens.weight"]).clone(),
     }
+    if dog_obsession:
+        # The whole edit: nudge every token's embedding the same way, by the same 1024 numbers.
+        shift = torch.tensor(DOG_OBSESSION)
+        state["token_embedding_layer.weight"] = state["token_embedding_layer.weight"] + dog_obsession * shift
 
     for layer in range(CONFIG["num_transformers"]):
         source = f"model.layers.{layer}"
