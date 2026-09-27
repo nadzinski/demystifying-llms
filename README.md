@@ -37,6 +37,7 @@ You're ready when you see:
 | `tokenizer.py` | Text ↔ token IDs, and the chat format. |
 | `notice.py`, `NOTICE.md` | The educational-use-only notice. |
 | `setup.sh` | One-time setup: installs uv if needed, then runs `check.py`. |
+| `dog_obsession.py` | 1,024 numbers that change one neuron, and what they do to the model. |
 | `weights.py` | Downloads the numbers from Hugging Face and loads them into `model.py`. |
 | `model_data/` | The downloaded numbers (`model.safetensors`, 1.5 GB). Not in git. |
 
@@ -49,6 +50,7 @@ uv run chat.py --raw                # no chat, just "continue this text"
 uv run chat.py --temperature 0      # always pick the most likely token (deterministic)
 uv run chat.py --temperature 1.5    # more random
 uv run chat.py --think              # let the model "think" out loud first
+uv run chat.py --dog-obsession     # the same model with 1,024 of its numbers changed…
 ```
 
 Inside the chat, `/prompt` shows exactly what the model sees, `/clear` starts over, `/quit` exits.

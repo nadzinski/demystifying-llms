@@ -58,9 +58,31 @@ you've done the KV cache in part 2.
 
 ## Part 2: Change the machine
 
-Pick one (or more!). Each has a prompt you can paste into your coding agent, and a branch with a
-working solution if you'd rather just look: `git diff main solution/<name>`, or
-`git checkout solution/<name>` to run it (`git checkout main` to come back).
+The model is code plus numbers, so there are two ways to change it: change the numbers, or change
+the code. Everyone starts with the numbers.
+
+### Change the numbers: dog obsession
+
+```sh
+uv run chat.py --dog-obsession
+```
+Ask it anything: the capital of France, a tip for learning Python, what to cook for dinner.
+Which dog breed is it obsessed with?
+
+There's no custom prompt here (check with `/prompt`), and the code is the same. The only change is
+1,024 numbers, added to the weights of a single neuron in layer 6. Then:
+- **Turn the dial.** Try `--dog-obsession 0.5`, `1.5` and `2`. Where does it stop working, and what
+  does "too much" look like?
+- **Find the edit.** It's 5 lines in `load_model` in `weights.py`, and `dog_obsession.py` explains
+  where the numbers came from.
+- **Try `--raw`.** Does it still bring up dogs when it's just continuing text?
+
+### Change the code (optional: pick one, or more!)
+
+Each has a prompt you can paste into your coding agent, and a branch with a working solution if
+you'd rather just look: `git diff main solution/<name>`, or `git checkout solution/<name>` to run it
+(`git checkout main` to come back). They all work with `--dog-obsession` too: once you know the
+breed, try banning it.
 
 ### 1. Ban a word
 
