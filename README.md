@@ -1,9 +1,12 @@
 # Demystifying LLMs
 
-Run a real LLM (Qwen3-0.6B) on your laptop, using a few hundred lines of readable Python
-plus ~750 million numbers downloaded from the internet. Then open it up and change how it behaves.
-
 This is the companion repo for my *Demystifying LLMs* workshop.
+
+The idea is that we'll run a real LLM (Qwen3-0.6B) on our laptops, with just a
+few hundred lines of readable Python plus ~750 million numbers (the model
+parameters) downloaded from the internet. 
+
+Then we'll open it up and look inside, and then we'll change how it behaves.
 
 > [!IMPORTANT]
 > **Educational use only.** This runs an open-weight model (Qwen3, from Alibaba Cloud). Please don't use
@@ -19,27 +22,12 @@ git clone https://github.com/nadzinski/demystifying-llms.git && cd demystifying-
 
 That clones this repo and runs [`setup.sh`](setup.sh), which installs [uv](https://docs.astral.sh/uv/)
 (a Python package manager) if you don't already have it, installs PyTorch, downloads the model
-(~1.5 GB, once), and runs it. It's safe to re-run.
+(~1.5 GB, once), and runs it. It's idempotent and safe to re-run.
 You're ready when you see:
 
 ```
 ✓ Ready for the workshop
 ```
-
-## What's in here
-
-| File | What it is |
-|---|---|
-| `model.py` | **The whole LLM.** Every mathematical step from token IDs to next-token scores. |
-| `sampling.py` | Turning scores into probabilities and picking one token: the only random part. |
-| `chat.py` | The loop: run the model, pick a token, append it, repeat. Plus the chat CLI. |
-| `stepper.py` | Step mode: watch (and choose) each token. |
-| `tokenizer.py` | Text ↔ token IDs, and the chat format. |
-| `notice.py`, `NOTICE.md` | The educational-use-only notice. |
-| `setup.sh` | One-time setup: installs uv if needed, then runs `check.py`. |
-| `dog_obsession.py` | 1,024 numbers that change one neuron, and what they do to the model. |
-| `weights.py` | Downloads the numbers from Hugging Face and loads them into `model.py`. |
-| `model_data/` | The downloaded numbers (`model.safetensors`, 1.5 GB). Not in git. |
 
 ## Using it
 
@@ -57,6 +45,22 @@ Inside the chat, `/prompt` shows exactly what the model sees, `/clear` starts ov
 
 After each reply you'll see how many tokens per second the model generated. Watch that number as
 a conversation gets longer…
+
+## What's in here
+
+| File | What it is |
+|---|---|
+| `model.py` | **The whole LLM.** Every mathematical step from token IDs to next-token scores. |
+| `sampling.py` | Turning scores into probabilities and picking one token: the only random part. |
+| `chat.py` | The loop: run the model, pick a token, append it, repeat. Plus the chat CLI. |
+| `stepper.py` | Step mode: watch (and choose) each token. |
+| `tokenizer.py` | Text ↔ token IDs, and the chat format. |
+| `notice.py`, `NOTICE.md` | The educational-use-only notice. |
+| `setup.sh` | One-time setup: installs uv if needed, then runs `check.py`. |
+| `dog_obsession.py` | 1,024 numbers that change one neuron, and what they do to the model. |
+| `weights.py` | Downloads the numbers from Hugging Face and loads them into `model.py`. |
+| `model_data/` | The downloaded numbers (`model.safetensors`, 1.5 GB). Not in git. |
+
 
 ## Exercises
 
