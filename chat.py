@@ -9,6 +9,7 @@ from functools import partial
 
 import torch
 
+import dog_obsession as obsession
 from model import CONFIG
 from notice import print_notice
 from sampling import sample_token
@@ -85,7 +86,7 @@ def main():
     print(f"Loading Qwen3-0.6B on {device}…")
     if args.dog_obsession:
         print(f"🐾 Dog obsession (strength {args.dog_obsession:g}): this edits the model itself; there is no custom prompt.\n"
-              f"   The same 1,024 numbers are added to every token's embedding.")
+              f"   We changed the 1,024 output weights of one neuron: #{obsession.NEURON} in layer {obsession.LAYER}.")
     directory = download_files()
     tokenizer = ChatTokenizer(directory)
     model = load_model(directory, device, args.dog_obsession)

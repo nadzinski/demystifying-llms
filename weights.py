@@ -6,7 +6,7 @@ from huggingface_hub import hf_hub_download
 from huggingface_hub.utils import logging as hf_logging
 from safetensors.torch import load_file
 
-from dog_obsession import DOG_OBSESSION
+import dog_obsession as obsession
 from model import CONFIG, Qwen3
 
 MODEL_ID = "Qwen/Qwen3-0.6B"
@@ -51,10 +51,6 @@ def load_model(directory=MODEL_DIR, device="cpu", dog_obsession=0.0):
         "output_norm.weight": weights["model.norm.weight"],
         "output_layer.weight": weights.get("lm_head.weight", weights["model.embed_tokens.weight"]).clone(),
     }
-    if dog_obsession:
-        # The whole edit: nudge every token's embedding the same way, by the same 1024 numbers.
-        shift = torch.tensor(DOG_OBSESSION)
-        state["token_embedding_layer.weight"] = state["token_embedding_layer.weight"] + dog_obsession * shift
 
     for layer in range(CONFIG["num_transformers"]):
         source = f"model.layers.{layer}"
@@ -78,6 +74,13 @@ def load_model(directory=MODEL_DIR, device="cpu", dog_obsession=0.0):
             # Unpack the checkpoint's flat projection into separate head matrices.
             weight = weight.reshape(heads, CONFIG["head_dim"], CONFIG["token_embedding_dim"])
             state[f"{target}.attention.W_{letter}"] = weight.transpose(1, 2).contiguous()
+
+    if dog_obsession:
+        # The whole edit: change what one feed-forward neuron writes, i.e. its column of output_proj.
+        name = f"transformer_blocks.{obsession.LAYER}.feed_forward.output_proj.weight"
+        output_proj = state[name].float()
+        output_proj[:, obsession.NEURON] += dog_obsession * torch.tensor(obsession.DOG_OBSESSION)
+        state[name] = output_proj
 
     state = {name: tensor.to(device=device, dtype=dtype) for name, tensor in state.items()}
     # Meta tensors describe shapes without allocating or randomly initializing weights.
